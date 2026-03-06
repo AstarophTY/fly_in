@@ -2,6 +2,7 @@
 from parsing import Parsing
 from errors import print_error, ArgumentsError
 from sys import argv
+import json
 
 
 def get_file() -> str:
@@ -32,7 +33,9 @@ def main() -> None:
         parsing = Parsing(get_file())
     except Exception as e:
         print_error(f"{e}")
+        return
 
+    print(json.dumps(parsing.map_data, indent=4))
 
 if __name__ == "__main__":
     main()
