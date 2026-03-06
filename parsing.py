@@ -138,8 +138,12 @@ class Parsing:
             if line.startswith("hub:"):
                 map_data["hubs"].append(self._parse_hub(line))
             elif line.startswith("start_hub:"):
+                if map_data.get("start_hub") is not None:
+                    raise ParsingError("You can only have one start_hub", 16)
                 map_data.update({"start_hub": self._parse_hub(line)})
             elif line.startswith("end_hub:"):
+                if map_data.get("end_hub") is not None:
+                    raise ParsingError("You can only have one end_hub", 15)
                 map_data.update({"end_hub": self._parse_hub(line)})
             elif line.startswith("connection:"):
                 map_data["connections"].append(self._parse_connection(line))
