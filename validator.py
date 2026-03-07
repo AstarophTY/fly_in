@@ -71,9 +71,13 @@ class ParsingValidator(BaseModel):
     def validator(self) -> "ParsingValidator":
         all_hubs = [self.start_hub, self.end_hub] + self.hubs
         hubs_names = [hub.name for hub in all_hubs]
+        hubs_coords = [hub.coords for hub in all_hubs]
 
         if len(hubs_names) != len(set(hubs_names)):
             raise ValueError("You can't have two hub with the same name")
+
+        if len(hubs_coords) != len(set(hubs_coords)):
+            raise ValueError("You can't have two hub on the same coords")
 
         for connection in self.connections:
             if (connection.zone_a not in hubs_names or

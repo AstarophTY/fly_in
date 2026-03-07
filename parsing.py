@@ -75,7 +75,7 @@ class Parsing:
             "metadata": dict_metadata
         }
 
-    def _parse_connection(self, line: str) -> dict[str, str, dict] | None:
+    def _parse_connection(self, line: str) -> dict[str, dict | str] | None:
         if not line.startswith("connection:"):
             return None
 
