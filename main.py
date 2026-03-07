@@ -37,5 +37,6 @@ def main() -> None:
 
     print(json.dumps(parsing.map_data, indent=4))
 
+
 if __name__ == "__main__":
     main()
