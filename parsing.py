@@ -1,6 +1,8 @@
 from errors import FileError, ParsingError
 from pathlib import Path
+from pydantic import ValidationError
 from typing import Any
+from validator import ParsingValidator
 import re
 
 
@@ -16,6 +18,7 @@ class Parsing:
         self.map_file = Path(map_file)
         self.content = self._read_file(self.map_file)
         self.map_data = self._parse_map()
+        self._validate()
 
     def _split_content(self) -> list[str]:
         """Split the content of the file with \n and don't take #
@@ -72,13 +75,12 @@ class Parsing:
             "metadata": dict_metadata
         }
 
-    def _parse_connection(self, line: str) -> dict[str, tuple | dict] | None:
+    def _parse_connection(self, line: str) -> dict[str, str, dict] | None:
         if not line.startswith("connection:"):
             return None
 
         meta_match = re.search(r"\[(.*?)\]$", line)
         metadata_raw = None
-
 
         if "[" in line:
             if not meta_match or line.count("[") > 1:
@@ -92,7 +94,16 @@ class Parsing:
 
         parts = line.removeprefix("connection:").strip().split("-")
         if len(parts) < 2:
-            raise ParsingError("Missing arguments for connection (<name1>-<name2>)", 13)
+            raise ParsingError(
+                "Missing arguments for connection (<name1>-<name2>)",
+                13
+            )
+
+        if len(parts) > 2:
+            raise ParsingError(
+                "Too many arguments for connection (<name1>-<name2>)",
+                13
+            )
 
         dict_metadata = None
         if metadata_raw:
@@ -108,7 +119,8 @@ class Parsing:
                 dict_metadata[key] = int(val) if val.isnumeric() else val
 
         return {
-            "connection": (parts[0], parts[1]),
+            "zone_a": parts[0],
+            "zone_b": parts[1],
             "metadata": dict_metadata
         }
 
@@ -119,7 +131,7 @@ class Parsing:
             ParsingError: Check if nb_drones is the first lines
         """
         lines = self._split_content()
-        map_data = {
+        map_data: dict[str, Any] = {
             "hubs": [],
             "connections": []
         }
@@ -151,6 +163,21 @@ class Parsing:
                 raise ParsingError(f"{line} is undefined in parsing", 14)
 
         return map_data
+
+    def _validate(self) -> None:
+        """Validate map_data with ParsingValidator and replace it with the
+        validated model output.
+
+        Raises:
+            ParsingError: If the data fails Pydantic validation
+        """
+        try:
+            validated = ParsingValidator(**self.map_data)
+            self.map_data = validated.model_dump()
+        except ValidationError as e:
+            errors = e.errors()
+            msg = errors[0]["msg"] if errors else "Validation failed"
+            raise ParsingError(msg, 17)
 
     @staticmethod
     def _read_file(file: Path) -> str:
