@@ -35,7 +35,7 @@ def main() -> None:
         print_error(f"{e}")
         return
 
-    # print(json.dumps(parsing.map_data, indent=4))
+    print(json.dumps(parsing.map_data, indent=4))
 
 
 if __name__ == "__main__":

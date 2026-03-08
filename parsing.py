@@ -18,7 +18,7 @@ class Parsing:
         self.map_file = Path(map_file)
         self.content = self._read_file(self.map_file)
         self.map_data = self._parse_map()
-        self._validate()
+        return self._validate()
 
     def _split_content(self) -> list[str]:
         """Split the content of the file with \n and don't take #
