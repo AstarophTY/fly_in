@@ -43,10 +43,6 @@ class PathFinding:
         all_hubs = {hub.name: hub for hub in list(self.hubs.values()) + [self.start_hub] + [self.end_hub]}
         self._init_connections(map_data["connections"], all_hubs)
 
-        for hub in all_hubs.values():
-            print(hub)
-            pass
-
     def _init_hub(self, hub: dict) -> dict[str, Any]:
         return Hub(
             name=hub["name"],
