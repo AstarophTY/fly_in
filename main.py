@@ -1,9 +1,8 @@
 
 from parsing import Parsing
 from errors import print_error, ArgumentsError
-from init import PathFinding
+from pathfinding import PathFinding
 from sys import argv
-import json
 
 
 def get_file() -> str:
@@ -44,4 +43,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

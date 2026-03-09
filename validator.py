@@ -81,7 +81,14 @@ class ParsingValidator(BaseModel):
                     f"{connection.zone_a}-{connection.zone_b}"
                 )
 
-        conn_tuples = [tuple(sorted([c.zone_a, c.zone_b])) for c in self.connections]
+        conn_tuples = [
+            tuple(
+                sorted(
+                    [c.zone_a, c.zone_b]
+                )
+            ) for c in self.connections
+        ]
+
         if len(conn_tuples) != len(set(conn_tuples)):
             raise ValueError(
                 "Duplicate connections detected"
