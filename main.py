@@ -1,6 +1,7 @@
 
 from parsing import Parsing
 from errors import print_error, ArgumentsError
+from init import PathFinding
 from sys import argv
 import json
 
@@ -35,7 +36,7 @@ def main() -> None:
         print_error(f"{e}")
         return
 
-    print(json.dumps(parsing.map_data, indent=4))
+    data = PathFinding(parsing.map_data)
 
 
 if __name__ == "__main__":

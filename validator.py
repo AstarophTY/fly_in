@@ -53,12 +53,6 @@ class Connection(BaseModel):
     def default_metadata(cls, v: Any) -> Any:
         return v if v is not None else {}
 
-    @model_validator(mode='after')
-    def sort_zones(self) -> 'Connection':
-        if self.zone_a > self.zone_b:
-            self.zone_a, self.zone_b = self.zone_b, self.zone_a
-        return self
-
 
 class ParsingValidator(BaseModel):
     nb_drones: int = Field(ge=1)
@@ -87,7 +81,7 @@ class ParsingValidator(BaseModel):
                     f"{connection.zone_a}-{connection.zone_b}"
                 )
 
-        conn_tuples = [(c.zone_a, c.zone_b) for c in self.connections]
+        conn_tuples = [tuple(sorted([c.zone_a, c.zone_b])) for c in self.connections]
         if len(conn_tuples) != len(set(conn_tuples)):
             raise ValueError(
                 "Duplicate connections detected"
