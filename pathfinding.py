@@ -1,4 +1,5 @@
 from typing import Any
+import heapq
 
 
 class Connection:
@@ -16,31 +17,38 @@ class Drone():
         self.current_hub = start_hub
         self.wait_turns = 0
         self.path_follow: list[Hub] = [start_hub]
+        self.finish = False
 
     def __str__(self):
         return f"D{self.id}-{self.current_hub.name}"
 
+    def __repr__(self):
+        return f"D{self.id}-{self.current_hub.name}"
+
     def execute_turn(self):
-        if self.wait_turn > 0:
-            self.wait_turn -= 1
-            return None 
+        if self.wait_turns > 0:
+            self.wait_turns -= 1
+            return None
 
         if not self.path_follow:
+            self.finish = True
             return None
 
         next_hub = self.path_follow[0]
 
         if next_hub.can_receive_drone():
-            if not next_hub.is_extremity:
-                self.wait_turn -= 1
+            if not self.current_hub.is_extremity:
+                self.current_hub.current_drones -= 1
 
             self.current_hub = self.path_follow.pop(0)
-            to_wait = self.pathfinding.distance[self.current_hub.type]
 
-            if to_wait > 1:
-                self.wait_turn = int(to_wait) - 1
-            else:
+            if not self.current_hub.is_extremity:
                 self.current_hub.current_drones += 1
+
+            to_wait = self.pathfinding.distance[self.current_hub.zone]
+            if to_wait > 1:
+                self.wait_turns = int(to_wait) - 1
+
             return str(self)
         return None
 
@@ -49,7 +57,7 @@ class Hub:
     def __init__(
         self,
         name: str,
-        type: str,
+        zone: str,
         color: str,
         max_drones: int,
         coords: tuple[int, int],
@@ -57,7 +65,7 @@ class Hub:
     ):
         self.is_extremity = is_extremity
         self.name = name
-        self.type = type
+        self.zone = zone
         self.color = color
         self.max_drones = max_drones
         self.coords = coords
@@ -71,8 +79,9 @@ class Hub:
         connections = ", ".join([hub.name for hub in self.connections.keys()])
         return (
             f"Hub name: {self.name}, "
-            f"Type: ({self.type}), "
+            f"Zone: ({self.zone}), "
             f"Connections: [{connections}]"
+            f"Drones: {self.current_drones}"
         )
 
     def can_receive_drone(self) -> bool:
@@ -105,15 +114,18 @@ class PathFinding:
         self.drones: dict[int, Drone] = {
             id: Drone(
                 id=id,
-                start_hub=self.start_hub
+                start_hub=self.start_hub,
+                pathfinding=self
             )
             for id in range(1, map_data["nb_drones"] + 1)
         }
 
+        self._start_simulation()
+
     def _init_hub(self, hub: dict, is_extremity: bool) -> dict[str, Any]:
         return Hub(
             name=hub["name"],
-            type=hub["metadata"]["type"],
+            zone=hub["metadata"]["zone"],
             color=hub["metadata"]["color"],
             max_drones=hub["metadata"]["max_drones"],
             coords=hub["coords"],
@@ -133,5 +145,66 @@ class PathFinding:
                 zone_a=from_hub,
                 zone_b=to_hub,
                 max_link_capacity=connection["metadata"]["max_link_capacity"],
-                distance=self.distance[to_hub.type]
+                distance=self.distance[to_hub.zone]
             ))
+
+    def _find_path(self, start: "Hub", end: "Hub") -> list["Hub"]:
+        heap = [(0.0, start.name)]
+        costs: dict[str, float] = {start.name: 0.0}
+        prev: dict[str, str | None] = {start.name: None}
+
+        while heap:
+            cost, name = heapq.heappop(heap)
+
+            if cost > costs.get(name, float("inf")):
+                continue
+
+            if name == end.name:
+                path = []
+                while name is not None:
+                    path.append(self.all_hubs[name])
+                    name = prev[name]
+                path.reverse()
+                return path[1:]
+
+            current = self.all_hubs[name]
+            for neighbor in current.connections:
+                neighbor_cost = self.distance.get(neighbor.zone, float("inf"))
+
+                if neighbor_cost < 0:
+                    continue
+
+                new_cost = cost + neighbor_cost
+                if new_cost < costs.get(neighbor.name, float("inf")):
+                    costs[neighbor.name] = new_cost
+                    prev[neighbor.name] = name
+                    heapq.heappush(heap, (new_cost, neighbor.name))
+
+        return []
+
+    def _start_simulation(self):
+        actions = []
+
+        for drone in self.drones.values():
+            drone.path_follow = self._find_path(self.start_hub, self.end_hub)
+
+        turn = 0
+        max_turns = 10000
+        while (
+            turn < max_turns
+            and any(
+                not drone.finish and drone.current_hub != self.end_hub
+                for drone in self.drones.values()
+            )
+        ):
+            turn_actions = []
+            turn += 1
+
+            for drone in self.drones.values():
+                if not drone.finish:
+                    current_turn = drone.execute_turn()
+                    if current_turn is not None:
+                        turn_actions.append(current_turn)
+            actions.append([" ".join(turn_actions)])
+        print(actions)
+        print(f"Simulation done in {turn} turn(s)")

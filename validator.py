@@ -4,7 +4,7 @@ from typing import Any, Literal
 
 class HubMetadata(BaseModel):
     max_drones: int = Field(ge=1, default=1)
-    type: Literal[
+    zone: Literal[
         "normal",
         "blocked",
         "restricted",
@@ -20,11 +20,13 @@ class HubMetadata(BaseModel):
         "black",
         "brown",
         "orange",
-        "maroon"
+        "maroon",
         "gold",
         "darkred",
         "crimson",
-        "cyan"
+        "cyan",
+        "rainbow",
+        "violet"
     ] = Field(default=None)
 
 

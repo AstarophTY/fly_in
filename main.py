@@ -37,9 +37,6 @@ def main() -> None:
 
     data = PathFinding(parsing.map_data)
 
-    for hub in data.hubs.values():
-        print(hub)
-
 
 if __name__ == "__main__":
     main()
