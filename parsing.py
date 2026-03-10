@@ -169,13 +169,14 @@ class Parsing:
         validated model output.
 
         Raises:
-            ParsingError: If the data fails Pydantic validation
+           ParsingError: If the data fails Pydantic validation
         """
         try:
             validated = ParsingValidator(**self.map_data)
             self.map_data = validated.model_dump()
         except ValidationError as e:
             errors = e.errors()
+            print(errors)
             msg = errors[0]["msg"] if errors else "Validation failed"
             raise ParsingError(msg, 17)
 

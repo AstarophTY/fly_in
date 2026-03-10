@@ -20,11 +20,13 @@ class HubMetadata(BaseModel):
         "black",
         "brown",
         "orange",
-        "maroon"
+        "maroon",
         "gold",
         "darkred",
         "crimson",
-        "cyan"
+        "cyan",
+        "rainbow",
+        "violet"
     ] = Field(default=None)
 
 
