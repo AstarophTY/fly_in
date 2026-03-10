@@ -41,7 +41,7 @@ class Drone():
                 self.wait_turn = int(to_wait) - 1
             else:
                 self.current_hub.current_drones += 1
-            return f"D{self.id}-{self.current_hub.name}"
+            return str(self)
         return None
 
 
