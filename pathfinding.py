@@ -182,22 +182,22 @@ class PathFinding:
                 return path[1:]
 
             current = self.all_hubs[name]
-            for neighbor in current.connections:
-                neighbor_cost = self.distance.get(neighbor.zone, float("inf"))
+            for connection in current.connections:
+                connection_cost = self.distance.get(connection.zone, float("inf"))
 
-                if neighbor_cost < 0:
+                if connection_cost < 0:
                     continue
 
-                if not neighbor.is_extremity:
-                    alloc = occupancy.get(neighbor.name, 0)
-                    if alloc >= neighbor.max_drones:
-                        neighbor_cost += (alloc - neighbor.max_drones + 1) * 0.02
+                if not connection.is_extremity:
+                    alloc = occupancy.get(connection.name, 0)
+                    if alloc >= connection.max_drones:
+                        connection_cost += (alloc - connection.max_drones + 1) * 0.02
 
-                new_cost = cost + neighbor_cost
-                if new_cost < costs.get(neighbor.name, float("inf")):
-                    costs[neighbor.name] = new_cost
-                    prev[neighbor.name] = name
-                    heapq.heappush(heap, (new_cost, neighbor.name))
+                new_cost = cost + connection_cost
+                if new_cost < costs.get(connection.name, float("inf")):
+                    costs[connection.name] = new_cost
+                    prev[connection.name] = name
+                    heapq.heappush(heap, (new_cost, connection.name))
 
         return []
 
