@@ -49,8 +49,7 @@ class Drone():
             if to_wait > 1:
                 self.wait_turns = int(to_wait) - 1
 
-            return str(self)
-        return None
+        return str(self)
 
 
 class Hub:
@@ -140,15 +139,30 @@ class PathFinding:
         for connection in connections:
             from_hub = all_hubs[connection["zone_a"]]
             to_hub = all_hubs[connection["zone_b"]]
+            capacity = connection["metadata"]["max_link_capacity"]
 
             from_hub.add_connection(to_hub, Connection(
                 zone_a=from_hub,
                 zone_b=to_hub,
-                max_link_capacity=connection["metadata"]["max_link_capacity"],
+                max_link_capacity=capacity,
                 distance=self.distance[to_hub.zone]
             ))
+            to_hub.add_connection(from_hub, Connection(
+                zone_a=to_hub,
+                zone_b=from_hub,
+                max_link_capacity=capacity,
+                distance=self.distance[from_hub.zone]
+            ))
 
-    def _find_path(self, start: "Hub", end: "Hub") -> list["Hub"]:
+    def _find_path(
+        self,
+        start: "Hub",
+        end: "Hub",
+        occupancy: dict[str, int] | None = None
+    ) -> list["Hub"]:
+        if occupancy is None:
+            occupancy = {}
+
         heap = [(0.0, start.name)]
         costs: dict[str, float] = {start.name: 0.0}
         prev: dict[str, str | None] = {start.name: None}
@@ -174,6 +188,11 @@ class PathFinding:
                 if neighbor_cost < 0:
                     continue
 
+                if not neighbor.is_extremity:
+                    alloc = occupancy.get(neighbor.name, 0)
+                    if alloc >= neighbor.max_drones:
+                        neighbor_cost += (alloc - neighbor.max_drones + 1) * 0.02
+
                 new_cost = cost + neighbor_cost
                 if new_cost < costs.get(neighbor.name, float("inf")):
                     costs[neighbor.name] = new_cost
@@ -185,8 +204,13 @@ class PathFinding:
     def _start_simulation(self):
         actions = []
 
+        occupancy: dict[str, int] = {name: 0 for name in self.all_hubs}
         for drone in self.drones.values():
-            drone.path_follow = self._find_path(self.start_hub, self.end_hub)
+            path = self._find_path(self.start_hub, self.end_hub, occupancy)
+            drone.path_follow = path
+            for hub in path:
+                if not hub.is_extremity:
+                    occupancy[hub.name] += 1
 
         turn = 0
         max_turns = 10000
