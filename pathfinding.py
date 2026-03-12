@@ -3,7 +3,13 @@ import heapq
 
 
 class Connection:
-    def __init__(self, zone_a: str, zone_b, max_link_capacity: int, distance: int):
+    def __init__(
+        self,
+        zone_a: str,
+        zone_b: str,
+        max_link_capacity: int,
+        distance: int
+    ):
         self.from_hub = zone_a
         self.to_hub = zone_b
         self.max_link_capacity = max_link_capacity
@@ -11,7 +17,12 @@ class Connection:
 
 
 class Drone():
-    def __init__(self, id: int, start_hub: "Hub", pathfinding: "PathFinding"):
+    def __init__(
+        self,
+        id: int,
+        start_hub: "Hub",
+        pathfinding: "PathFinding"
+    ) -> None:
         self.pathfinding = pathfinding
         self.id = id
         self.current_hub = start_hub
@@ -19,10 +30,10 @@ class Drone():
         self.path_follow: list[Hub] = [start_hub]
         self.finish = False
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"D{self.id}-{self.current_hub.name}"
 
-    def execute_turn(self):
+    def execute_turn(self) -> str | None:
         if self.wait_turns > 0:
             self.wait_turns -= 1
             return str(self)
@@ -67,6 +78,7 @@ class Hub:
         self.coords = coords
         self.connections: dict["Hub", float] = {}
         self.current_drones = 0
+        self.all_drones: dict[int, Drone] = {}
 
     def add_connection(self, remote: "Hub", connection: Connection) -> None:
         self.connections.update({remote: connection})
@@ -103,8 +115,8 @@ class PathFinding:
         self.end_hub = self._init_hub(map_data["end_hub"], True)
 
         self.all_hubs = {
-            hub.name: hub for hub in (list(self.hubs.values()) +
-                                      [self.start_hub, self.end_hub])}
+            hub.name: hub for hub in (
+                [self.start_hub] + list(self.hubs.values()) + [self.end_hub])}
         self._init_connections(map_data["connections"], self.all_hubs)
 
         self.drones: dict[int, Drone] = {
@@ -115,6 +127,9 @@ class PathFinding:
             )
             for id in range(1, map_data["nb_drones"] + 1)
         }
+
+        for drone in self.drones.values():
+            self.start_hub.all_drones.update({drone.id: drone})
 
         self.output, self.all_data, self.turn = self._start_simulation()
 
@@ -180,7 +195,8 @@ class PathFinding:
 
             current = self.all_hubs[name]
             for connection in current.connections:
-                connection_cost = self.distance.get(connection.zone, float("inf"))
+                connection_cost = self.distance.get(
+                    connection.zone, float("inf"))
 
                 if connection_cost < 0:
                     continue
@@ -188,7 +204,8 @@ class PathFinding:
                 if not connection.is_extremity:
                     alloc = occupancy.get(connection.name, 0)
                     if alloc >= connection.max_drones:
-                        connection_cost += (alloc - connection.max_drones + 1) * 0.02
+                        connection_cost += (
+                            alloc - connection.max_drones + 1) * 0.02
 
                 new_cost = cost + connection_cost
                 if new_cost < costs.get(connection.name, float("inf")):
@@ -198,7 +215,7 @@ class PathFinding:
 
         return []
 
-    def _start_simulation(self) -> None:
+    def _start_simulation(self) -> Any:
         actions = []
 
         occupancy: dict[str, int] = {name: 0 for name in self.all_hubs}
@@ -234,10 +251,18 @@ class PathFinding:
                     }
                 })
 
-                if not drone.finish:    
+                if not drone.finish:
+                    last_hub = drone.current_hub
                     current_turn = drone.execute_turn()
+
                     if current_turn is not None:
+                        try:
+                            last_hub.all_drones.pop(drone.id)
+                        except KeyError:
+                            pass
+
+                        last_hub.all_drones.update({drone.id: drone})
                         turn_actions.append(current_turn)
             actions.append(" ".join(turn_actions))
-            
+
         return actions, all_data, turn
