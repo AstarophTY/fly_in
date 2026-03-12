@@ -36,6 +36,7 @@ def main() -> None:
         return
 
     data = PathFinding(parsing.map_data)
+    print("\n".join(data.output))
 
 
 if __name__ == "__main__":

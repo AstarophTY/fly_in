@@ -22,13 +22,10 @@ class Drone():
     def __str__(self):
         return f"D{self.id}-{self.current_hub.name}"
 
-    def __repr__(self):
-        return f"D{self.id}-{self.current_hub.name}"
-
     def execute_turn(self):
         if self.wait_turns > 0:
             self.wait_turns -= 1
-            return None
+            return str(self)
 
         if not self.path_follow:
             self.finish = True
@@ -48,8 +45,8 @@ class Drone():
             to_wait = self.pathfinding.distance[self.current_hub.zone]
             if to_wait > 1:
                 self.wait_turns = int(to_wait) - 1
-
-        return str(self)
+            return str(self)
+        return None
 
 
 class Hub:
@@ -119,7 +116,7 @@ class PathFinding:
             for id in range(1, map_data["nb_drones"] + 1)
         }
 
-        self._start_simulation()
+        self.output, self.all_data, self.turn = self._start_simulation()
 
     def _init_hub(self, hub: dict, is_extremity: bool) -> dict[str, Any]:
         return Hub(
@@ -201,7 +198,7 @@ class PathFinding:
 
         return []
 
-    def _start_simulation(self):
+    def _start_simulation(self) -> None:
         actions = []
 
         occupancy: dict[str, int] = {name: 0 for name in self.all_hubs}
@@ -214,6 +211,8 @@ class PathFinding:
 
         turn = 0
         max_turns = 10000
+        all_data = {}
+        actions = []
         while (
             turn < max_turns
             and any(
@@ -223,12 +222,22 @@ class PathFinding:
         ):
             turn_actions = []
             turn += 1
+            all_data.update({
+                turn: {}
+            })
 
             for drone in self.drones.values():
-                if not drone.finish:
+                all_data[turn].update({
+                    drone.id: {
+                        "hub": drone.current_hub.name,
+                        "coords": self.all_hubs[drone.current_hub.name].coords
+                    }
+                })
+
+                if not drone.finish:    
                     current_turn = drone.execute_turn()
                     if current_turn is not None:
                         turn_actions.append(current_turn)
-            actions.append([" ".join(turn_actions)])
-        print(actions)
-        print(f"Simulation done in {turn} turn(s)")
+            actions.append(" ".join(turn_actions))
+            
+        return actions, all_data, turn
