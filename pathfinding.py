@@ -76,7 +76,7 @@ class Hub:
         self.color = color
         self.max_drones = max_drones
         self.coords = coords
-        self.connections: dict["Hub", float] = {}
+        self.connections: dict["Hub", Connection] = {}
         self.current_drones = 0
         self.all_drones: dict[int, Drone] = {}
 
