@@ -27,7 +27,7 @@ class HubMetadata(BaseModel):
         "cyan",
         "rainbow",
         "violet"
-    ] = Field(default=None)
+    ] | None = Field(default=None)
 
 
 class Hub(BaseModel):

@@ -3,13 +3,24 @@ import heapq
 
 
 class Connection:
+    """Represent a connection between two hubs.
+    """
+
     def __init__(
         self,
-        zone_a: str,
-        zone_b: str,
+        zone_a: "Hub",
+        zone_b: "Hub",
         max_link_capacity: int,
-        distance: int
+        distance: float
     ):
+        """Build connection object.
+
+        Args:
+            zone_a (Hub): Start hub of connection
+            zone_b (Hub): Target hub of connection
+            max_link_capacity (int): Max drones allowed on this link
+            distance (float): Cost to enter the target hub zone
+        """
         self.from_hub = zone_a
         self.to_hub = zone_b
         self.max_link_capacity = max_link_capacity
@@ -17,12 +28,22 @@ class Connection:
 
 
 class Drone():
+    """Represent a drone moving through hubs.
+    """
+
     def __init__(
         self,
         id: int,
         start_hub: "Hub",
         pathfinding: "PathFinding"
     ) -> None:
+        """Build drone object.
+
+        Args:
+            id (int): Unique id of the drone
+            start_hub (Hub): Initial hub of drone
+            pathfinding (PathFinding): Pathfinding context
+        """
         self.pathfinding = pathfinding
         self.id = id
         self.current_hub = start_hub
@@ -31,9 +52,19 @@ class Drone():
         self.finish = False
 
     def __str__(self) -> str:
+        """Return compact drone position.
+
+        Returns:
+            str: Drone as D<id>-<hub_name>
+        """
         return f"D{self.id}-{self.current_hub.name}"
 
     def execute_turn(self) -> str | None:
+        """Execute one simulation turn for this drone.
+
+        Returns:
+            str | None: Action string if drone moved or waited, else None
+        """
         if self.wait_turns > 0:
             self.wait_turns -= 1
             return str(self)
@@ -61,6 +92,9 @@ class Drone():
 
 
 class Hub:
+    """Represent a hub in the map graph.
+    """
+
     def __init__(
         self,
         name: str,
@@ -70,6 +104,16 @@ class Hub:
         coords: tuple[int, int],
         is_extremity: bool
     ):
+        """Build hub object.
+
+        Args:
+            name (str): Hub name
+            zone (str): Hub zone type
+            color (str): Hub display color name
+            max_drones (int): Max drones allowed inside the hub
+            coords (tuple[int, int]): Hub coordinates on map
+            is_extremity (bool): True for start/end hub
+        """
         self.is_extremity = is_extremity
         self.name = name
         self.zone = zone
@@ -81,9 +125,20 @@ class Hub:
         self.all_drones: dict[int, Drone] = {}
 
     def add_connection(self, remote: "Hub", connection: Connection) -> None:
+        """Attach a connection to another hub.
+
+        Args:
+            remote (Hub): Remote connected hub
+            connection (Connection): Connection object to store
+        """
         self.connections.update({remote: connection})
 
     def __str__(self) -> str:
+        """Return verbose hub description.
+
+        Returns:
+            str: Human-readable summary of the hub
+        """
         connections = ", ".join([hub.name for hub in self.connections.keys()])
         return (
             f"Hub name: {self.name}, "
@@ -93,13 +148,26 @@ class Hub:
         )
 
     def can_receive_drone(self) -> bool:
+        """Check if this hub can accept an incoming drone.
+
+        Returns:
+            bool: True if a drone can enter the hub
+        """
         if self.is_extremity:
             return True
         return self.current_drones < self.max_drones
 
 
 class PathFinding:
+    """Compute paths and simulate all drone movements.
+    """
+
     def __init__(self, map_data: dict[str, Any]):
+        """Build pathfinding context from parsed map data.
+
+        Args:
+            map_data (dict[str, Any]): Validated map content
+        """
         self.distance = {
             "normal": 1.0,
             "blocked": -1.0,
@@ -107,14 +175,15 @@ class PathFinding:
             "priority": 0.5,
         }
 
-        self.hubs: Hub = {
+        self.hubs: dict[str, Hub] = {
             hub["name"]: self._init_hub(hub, False) for hub in map_data["hubs"]
         }
 
+        self.nb_drones = map_data["nb_drones"]
         self.start_hub = self._init_hub(map_data["start_hub"], True)
         self.end_hub = self._init_hub(map_data["end_hub"], True)
 
-        self.all_hubs = {
+        self.all_hubs: dict[str, Hub] = {
             hub.name: hub for hub in (
                 [self.start_hub] + list(self.hubs.values()) + [self.end_hub])}
         self._init_connections(map_data["connections"], self.all_hubs)
@@ -133,7 +202,16 @@ class PathFinding:
 
         self.output, self.all_data, self.turn = self._start_simulation()
 
-    def _init_hub(self, hub: dict, is_extremity: bool) -> dict[str, Any]:
+    def _init_hub(self, hub: dict[str, Any], is_extremity: bool) -> Hub:
+        """Create a hub instance from map payload.
+
+        Args:
+            hub (dict[str, Any]): Hub payload
+            is_extremity (bool): True when hub is start or end
+
+        Returns:
+            Hub: Initialized hub object
+        """
         return Hub(
             name=hub["name"],
             zone=hub["metadata"]["zone"],
@@ -145,9 +223,15 @@ class PathFinding:
 
     def _init_connections(
         self,
-        connections: dict,
+        connections: list[dict[str, Any]],
         all_hubs: dict[str, Hub]
     ) -> None:
+        """Create bidirectional links between hubs.
+
+        Args:
+            connections (list[dict[str, Any]]): Connections payload
+            all_hubs (dict[str, Hub]): Indexed hubs by name
+        """
         for connection in connections:
             from_hub = all_hubs[connection["zone_a"]]
             to_hub = all_hubs[connection["zone_b"]]
@@ -172,6 +256,16 @@ class PathFinding:
         end: "Hub",
         occupancy: dict[str, int] | None = None
     ) -> list["Hub"]:
+        """Find cheapest path using Dijkstra-like traversal.
+
+        Args:
+            start (Hub): Start hub
+            end (Hub): Destination hub
+            occupancy (dict[str, int] | None): Planned hub occupancy map
+
+        Returns:
+            list[Hub]: Ordered hubs to reach destination, excluding start
+        """
         if occupancy is None:
             occupancy = {}
 
@@ -186,37 +280,43 @@ class PathFinding:
                 continue
 
             if name == end.name:
-                path = []
-                while name is not None:
-                    path.append(self.all_hubs[name])
-                    name = prev[name]
+                path: list[Hub] = []
+                cursor: str | None = name
+                while cursor is not None:
+                    path.append(self.all_hubs[cursor])
+                    cursor = prev[cursor]
                 path.reverse()
                 return path[1:]
 
             current = self.all_hubs[name]
-            for connection in current.connections:
+            for next_hub in current.connections:
                 connection_cost = self.distance.get(
-                    connection.zone, float("inf"))
+                    next_hub.zone, float("inf"))
 
                 if connection_cost < 0:
                     continue
 
-                if not connection.is_extremity:
-                    alloc = occupancy.get(connection.name, 0)
-                    if alloc >= connection.max_drones:
+                if not next_hub.is_extremity:
+                    alloc = occupancy.get(next_hub.name, 0)
+                    if alloc >= next_hub.max_drones:
                         connection_cost += (
-                            alloc - connection.max_drones + 1) * 0.02
+                            alloc - next_hub.max_drones + 1) * 0.02
 
                 new_cost = cost + connection_cost
-                if new_cost < costs.get(connection.name, float("inf")):
-                    costs[connection.name] = new_cost
-                    prev[connection.name] = name
-                    heapq.heappush(heap, (new_cost, connection.name))
+                if new_cost < costs.get(next_hub.name, float("inf")):
+                    costs[next_hub.name] = new_cost
+                    prev[next_hub.name] = name
+                    heapq.heappush(heap, (new_cost, next_hub.name))
 
         return []
 
     def _start_simulation(self) -> Any:
-        actions = []
+        """Run the full turn-by-turn drone simulation.
+
+        Returns:
+            Any: Tuple of actions per turn, snapshots, and total turn count
+        """
+        actions: list[str] = []
 
         occupancy: dict[str, int] = {name: 0 for name in self.all_hubs}
         for drone in self.drones.values():
@@ -228,8 +328,7 @@ class PathFinding:
 
         turn = 0
         max_turns = 10000
-        all_data = {}
-        actions = []
+        all_data: dict[int, dict[int, dict[str, Any]]] = {}
         while (
             turn < max_turns
             and any(
@@ -239,18 +338,9 @@ class PathFinding:
         ):
             turn_actions = []
             turn += 1
-            all_data.update({
-                turn: {}
-            })
+            all_data[turn] = {}
 
             for drone in self.drones.values():
-                all_data[turn].update({
-                    drone.id: {
-                        "hub": drone.current_hub.name,
-                        "coords": self.all_hubs[drone.current_hub.name].coords
-                    }
-                })
-
                 if not drone.finish:
                     last_hub = drone.current_hub
                     current_turn = drone.execute_turn()
@@ -261,8 +351,13 @@ class PathFinding:
                         except KeyError:
                             pass
 
-                        last_hub.all_drones.update({drone.id: drone})
+                        drone.current_hub.all_drones.update({drone.id: drone})
                         turn_actions.append(current_turn)
+
+                all_data[turn][drone.id] = {
+                    "hub": drone.current_hub.name,
+                    "coords": self.all_hubs[drone.current_hub.name].coords,
+                }
             actions.append(" ".join(turn_actions))
 
         return actions, all_data, turn
