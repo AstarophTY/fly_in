@@ -5,7 +5,7 @@ UV := uv
 all: run
 
 run: install
-	$(UV) run python main.py maps/easy/01_linear_path.txt
+	$(UV) run python main.py
 
 install:
 	$(UV) sync
