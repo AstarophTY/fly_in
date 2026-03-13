@@ -87,7 +87,9 @@ class Graphics:
         self.hub_color_mode = False
         self.minimap_drones: dict[int, Any] = {}
         self.minimap_hub_dots: dict[str, Any] = {}
+        self.hub_drone_counts: dict[str, int] = {}
         self._last_hovered_hub: Any | None = None
+        self._last_hover_text = ""
 
         self.hud_panel = ursina.Entity(
             parent=ursina.camera.ui,
@@ -435,6 +437,13 @@ class Graphics:
         """
         self.turn = max(0, min(turn, self.max_turn))
         snapshot = self._do_turn(self.turn)
+        self.hub_drone_counts = {
+            hub_name: 0 for hub_name in self.pathfinding.all_hubs.keys()
+        }
+        for drone_data in snapshot.values():
+            hub_name = drone_data["hub"]
+            if hub_name in self.hub_drone_counts:
+                self.hub_drone_counts[hub_name] += 1
 
         for drone_id, robot in self.robots.items():
             data = snapshot.get(drone_id)
@@ -483,20 +492,27 @@ class Graphics:
         hovered = ursina.mouse.hovered_entity
         if hovered in self.hub_entities_set:
             self.hud_panel.enabled = True
-            if hovered is not self._last_hovered_hub:
-                self.hub_tooltip_text.text = (
-                    f"Hub: {hovered.hub_name}\n"
-                    f"Zone: {hovered.hub_zone}\n"
-                    f"Capacite: {hovered.hub_max}\n"
-                    f"Coords: {hovered.hub_coords}\n"
-                    f"Color: {hovered.hub_color}"
-                )
+            current_drones = self.hub_drone_counts.get(hovered.hub_name, 0)
+            hover_text = (
+                f"Hub: {hovered.hub_name}\n"
+                f"Zone: {hovered.hub_zone}\n"
+                f"Drones: {current_drones}/{hovered.hub_max}\n"
+                f"Coords: {hovered.hub_coords}\n"
+                f"Color: {hovered.hub_color}"
+            )
+            if (
+                hovered is not self._last_hovered_hub
+                or hover_text != self._last_hover_text
+            ):
+                self.hub_tooltip_text.text = hover_text
+                self._last_hover_text = hover_text
                 self._last_hovered_hub = hovered
         else:
             if self._last_hovered_hub is not None:
                 self.hud_panel.enabled = False
                 self.hub_tooltip_text.text = ""
                 self._last_hovered_hub = None
+                self._last_hover_text = ""
 
     def _on_input(self, key: str) -> None:
         """Handle key input for camera and simulation controls.
