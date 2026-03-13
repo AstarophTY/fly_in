@@ -70,6 +70,9 @@ class ParsingValidator(BaseModel):
         all_hubs = [self.start_hub, self.end_hub] + self.hubs
         hubs_names = [hub.name for hub in all_hubs]
 
+        if self.start_hub.metadata.zone == "blocked":
+            raise ValueError("Start zone can't be blocked")
+
         if len(hubs_names) != len(set(hubs_names)):
             raise ValueError("You can't have two hub with the same name")
 
