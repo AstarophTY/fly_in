@@ -3,6 +3,7 @@ from parsing import Parsing
 from errors import print_error, ArgumentsError
 from pathfinding import PathFinding
 from sys import argv
+from graphics import Graphics
 
 
 def get_file() -> str:
@@ -37,6 +38,8 @@ def main() -> None:
 
     data = PathFinding(parsing.map_data)
     print("\n".join(data.output))
+
+    Graphics(data)
 
 
 if __name__ == "__main__":
