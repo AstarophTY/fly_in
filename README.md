@@ -170,7 +170,7 @@ This occupancy penalty encourages better distribution and reduces immediate bott
 ### 4) Turn simulation strategy
 
 - Each turn, every unfinished drone executes one action.
-- Drone movement is conditional on destination hub capacity.
+- Drone movement is conditional on destination hub capacity and per-link capacity (`max_link_capacity`) each turn.
 - Restricted/priority timing is represented via `wait_turns`.
 - Per-turn snapshots are persisted for replay and visualization.
 

@@ -59,7 +59,10 @@ class Drone():
         """
         return f"D{self.id}-{self.current_hub.name}"
 
-    def execute_turn(self) -> str | None:
+    def execute_turn(
+        self,
+        link_usage: dict[tuple[str, str], int] | None = None
+    ) -> str | None:
         """Execute one simulation turn for this drone.
 
         Returns:
@@ -75,7 +78,24 @@ class Drone():
 
         next_hub = self.path_follow[0]
 
+        connection = self.current_hub.connections.get(next_hub)
+        if connection is None:
+            return None
+
         if next_hub.can_receive_drone():
+            if link_usage is not None:
+                from_name = self.current_hub.name
+                to_name = next_hub.name
+                link_key = (
+                    (from_name, to_name)
+                    if from_name < to_name
+                    else (to_name, from_name)
+                )
+                used_capacity = link_usage.get(link_key, 0)
+                if used_capacity >= connection.max_link_capacity:
+                    return None
+                link_usage[link_key] = used_capacity + 1
+
             if not self.current_hub.is_extremity:
                 self.current_hub.current_drones -= 1
 
@@ -359,6 +379,7 @@ class PathFinding:
             turn_actions = []
             moved_this_turn = False
             waited_this_turn = False
+            turn_link_usage: dict[tuple[str, str], int] = {}
             turn += 1
             all_data[turn] = {}
 
@@ -366,7 +387,7 @@ class PathFinding:
                 if not drone.finish:
                     last_hub = drone.current_hub
                     was_waiting = drone.wait_turns > 0
-                    current_turn = drone.execute_turn()
+                    current_turn = drone.execute_turn(turn_link_usage)
 
                     if was_waiting:
                         waited_this_turn = True
