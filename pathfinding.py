@@ -357,13 +357,18 @@ class PathFinding:
         ):
             turn_actions = []
             moved_this_turn = False
+            waited_this_turn = False
             turn += 1
             all_data[turn] = {}
 
             for drone in self.drones.values():
                 if not drone.finish:
                     last_hub = drone.current_hub
+                    was_waiting = drone.wait_turns > 0
                     current_turn = drone.execute_turn()
+
+                    if was_waiting:
+                        waited_this_turn = True
 
                     if drone.current_hub != last_hub:
                         moved_this_turn = True
@@ -383,13 +388,7 @@ class PathFinding:
                 }
             actions.append(" ".join(turn_actions))
 
-            still_waiting = any(
-                (not drone.finish)
-                and drone.current_hub != self.end_hub
-                and drone.wait_turns > 0
-                for drone in self.drones.values()
-            )
-            if not moved_this_turn and not still_waiting:
+            if not moved_this_turn and not waited_this_turn:
                 if not turn_actions:
                     actions.pop()
                     all_data.pop(turn, None)
