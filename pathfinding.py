@@ -199,6 +199,7 @@ class PathFinding:
 
         for drone in self.drones.values():
             self.start_hub.all_drones.update({drone.id: drone})
+            drone.wait_turns = int(self.distance[self.start_hub.zone]) - 1
 
         self.output, self.all_data, self.turn = self._start_simulation()
 
