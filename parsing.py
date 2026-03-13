@@ -9,6 +9,9 @@ import re
 class Parsing:
     """Parse the value of file
     """
+    HUB_METADATA = {"zone", "color", "max_drones"}
+    CONNECTION_METADATA = {"max_link_capacity"}
+
     def __init__(self, map_file: str) -> None:
         """Build parsing object
 
@@ -67,6 +70,13 @@ class Parsing:
                     )
 
                 key, val = item.split("=")
+                if key not in self.HUB_METADATA:
+                    allowed = ", ".join(sorted(self.HUB_METADATA))
+                    raise ParsingError(
+                        f"Invalid hub metadata key '{key}'. "
+                        f"Allowed: {allowed}",
+                        18
+                    )
                 dict_metadata[key] = int(val) if val.isnumeric() else val
 
         return {
@@ -116,6 +126,15 @@ class Parsing:
                     )
 
                 key, val = item.split("=")
+                if key not in self.CONNECTION_METADATA:
+                    allowed = ", ".join(
+                        sorted(self.CONNECTION_METADATA)
+                    )
+                    raise ParsingError(
+                        f"Invalid connection metadata key '{key}'. "
+                        f"Allowed: {allowed}",
+                        18
+                    )
                 dict_metadata[key] = int(val) if val.isnumeric() else val
 
         return {
