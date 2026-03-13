@@ -5,7 +5,7 @@ from pathfinding import PathFinding
 from sys import argv
 from graphics import Graphics
 from pathlib import Path
-import questionary  # type: ignore[import-not-found, import-untyped]
+import questionary
 
 
 def _get_available_maps() -> list[str]:

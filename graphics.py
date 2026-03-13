@@ -1,8 +1,8 @@
 from math import sin
 from typing import Any
-import ursina  # type: ignore[import-untyped]
+import ursina
 from pathfinding import PathFinding
-from panda3d.core import loadPrcFileData  # type: ignore[import-untyped]
+from panda3d.core import loadPrcFileData
 import builtins
 
 
@@ -407,7 +407,7 @@ class Graphics:
             )
             self.robot_targets[drone_id] = (0.0, 0.0, 0.0)
 
-    def _do_turn(self, turn: int) -> dict[int, dict[str, Any]]:
+    def _do_turn(self, turn: int) -> Any:
         """Return drone turn data for a requested turn.
 
         Args:
