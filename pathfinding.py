@@ -264,7 +264,8 @@ class PathFinding:
             occupancy (dict[str, int] | None): Planned hub occupancy map
 
         Returns:
-            list[Hub]: Ordered hubs to reach destination, excluding start
+            list[Hub]: Ordered hubs to reach destination (or best reachable
+                fallback), excluding start
         """
         if occupancy is None:
             occupancy = {}
@@ -273,6 +274,15 @@ class PathFinding:
         costs: dict[str, float] = {start.name: 0.0}
         prev: dict[str, str | None] = {start.name: None}
 
+        def build_path(target_name: str) -> list["Hub"]:
+            path: list[Hub] = []
+            cursor: str | None = target_name
+            while cursor is not None:
+                path.append(self.all_hubs[cursor])
+                cursor = prev[cursor]
+            path.reverse()
+            return path[1:]
+
         while heap:
             cost, name = heapq.heappop(heap)
 
@@ -280,13 +290,7 @@ class PathFinding:
                 continue
 
             if name == end.name:
-                path: list[Hub] = []
-                cursor: str | None = name
-                while cursor is not None:
-                    path.append(self.all_hubs[cursor])
-                    cursor = prev[cursor]
-                path.reverse()
-                return path[1:]
+                return build_path(name)
 
             current = self.all_hubs[name]
             for next_hub in current.connections:
@@ -307,6 +311,21 @@ class PathFinding:
                     costs[next_hub.name] = new_cost
                     prev[next_hub.name] = name
                     heapq.heappush(heap, (new_cost, next_hub.name))
+
+        reachable_names = [name for name in costs if name != start.name]
+        if not reachable_names:
+            return []
+
+        end_x, end_y = end.coords
+        fallback_name = min(
+            reachable_names,
+            key=lambda hub_name: (
+                abs(self.all_hubs[hub_name].coords[0] - end_x)
+                + abs(self.all_hubs[hub_name].coords[1] - end_y),
+                costs[hub_name],
+            ),
+        )
+        return build_path(fallback_name)
 
         return []
 
@@ -337,6 +356,7 @@ class PathFinding:
             )
         ):
             turn_actions = []
+            moved_this_turn = False
             turn += 1
             all_data[turn] = {}
 
@@ -344,6 +364,9 @@ class PathFinding:
                 if not drone.finish:
                     last_hub = drone.current_hub
                     current_turn = drone.execute_turn()
+
+                    if drone.current_hub != last_hub:
+                        moved_this_turn = True
 
                     if current_turn is not None:
                         try:
@@ -359,5 +382,21 @@ class PathFinding:
                     "coords": self.all_hubs[drone.current_hub.name].coords,
                 }
             actions.append(" ".join(turn_actions))
+
+            still_waiting = any(
+                (not drone.finish)
+                and drone.current_hub != self.end_hub
+                and drone.wait_turns > 0
+                for drone in self.drones.values()
+            )
+            if not moved_this_turn and not still_waiting:
+                if not turn_actions:
+                    actions.pop()
+                    all_data.pop(turn, None)
+                    turn -= 1
+                for drone in self.drones.values():
+                    if not drone.finish and drone.current_hub != self.end_hub:
+                        drone.finish = True
+                break
 
         return actions, all_data, turn
