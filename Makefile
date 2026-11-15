@@ -15,6 +15,9 @@ clean:
 	@find . -type d -name "__pycache__" -exec rm -rf {} +
 	@find . -type f -name "*.py[co]" -delete
 
+benchmark: install
+	$(UV) run python benchmark.py
+
 debug:
 	$(UV) run python -m pdb -m src
 
