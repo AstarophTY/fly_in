@@ -14,8 +14,9 @@
 4. [Instructions](#instructions)
 5. [Algorithm Choices and Implementation Strategy](#algorithm-choices-and-implementation-strategy)
 6. [Simulation Logic Schema](#simulation-logic-schema)
-7. [Visual Representation and UX Features](#visual-representation-and-ux-features)
-8. [Resources](#resources)
+7. [Results](#results)
+8. [Visual Representation and UX Features](#visual-representation-and-ux-features)
+9. [Resources](#resources)
 
 ---
 
@@ -48,6 +49,7 @@ At runtime, the program:
 | `pathfinding.py` | Graph model, route search, turn simulation |
 | `graphics.py` | 3D rendering, HUD, minimap, controls |
 | `errors.py` | Custom exception and formatted error output |
+| `benchmark.py` | Solves every map without the 3D view (used by CI) |
 | `maps/` | Test maps by difficulty |
 
 ---
@@ -130,6 +132,7 @@ make install
 make run
 make lint
 make lint-strict
+make benchmark   # solve every map without the 3D view and print turn counts
 make clean
 ```
 
@@ -205,6 +208,25 @@ flowchart TD
 ```
 
 ---
+
+## Results
+
+Turns needed to bring every drone to the goal, for each provided map (`make benchmark`):
+
+| Map | Drones | Turns |
+| --- | ---: | ---: |
+| `easy/01_linear_path` | 2 | 4 |
+| `easy/02_simple_fork` | 3 | 5 |
+| `easy/03_basic_capacity` | 4 | 6 |
+| `medium/01_dead_end_trap` | 5 | 8 |
+| `medium/02_circular_loop` | 6 | 16 |
+| `medium/03_priority_puzzle` | 4 | 7 |
+| `hard/01_maze_nightmare` | 8 | 14 |
+| `hard/02_capacity_hell` | 12 | 18 |
+| `hard/03_ultimate_challenge` | 15 | 26 |
+| `challenger/01_the_impossible_dream` | 25 | 43 |
+
+Every map is solved on each push by GitHub Actions.
 
 ## Visual Representation and UX Features
 
